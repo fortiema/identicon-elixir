@@ -8,6 +8,9 @@ defmodule Identicon do
     |> pick_color
     |> build_grid
     |> filter_squares
+    |> build_pixel_map
+    |> draw_image
+    |> save_image(input)
   end
 
   @doc """
@@ -19,7 +22,8 @@ defmodule Identicon do
       %Identicon.Image{
         color: nil,
         grid: nil,
-        hex: [114, 179, 2, 191, 41, 122, 34, 138, 117, 115, 1, 35, 239, 239, 124, 65]
+        hex: [114, 179, 2, 191, 41, 122, 34, 138, 117, 115, 1, 35, 239, 239, 124, 65],
+        pixel_map: nil
       }
   """
   def hash_input(input) do
@@ -39,7 +43,8 @@ defmodule Identicon do
       %Identicon.Image{
           color: {114, 179, 2},
           grid: nil,
-          hex: [114, 179, 2, 191, 41, 122, 34, 138, 117, 115, 1, 35, 239, 239, 124, 65]
+          hex: [114, 179, 2, 191, 41, 122, 34, 138, 117, 115, 1, 35, 239, 239, 124, 65],
+          pixel_map: nil
         }
   """
   def pick_color(image) do
@@ -83,7 +88,8 @@ defmodule Identicon do
             {239, 23},
             {239, 24}
           ],
-          hex: [114, 179, 2, 191, 41, 122, 34, 138, 117, 115, 1, 35, 239, 239, 124, 65]
+          hex: [114, 179, 2, 191, 41, 122, 34, 138, 117, 115, 1, 35, 239, 239, 124, 65],
+          pixel_map: nil
         }
   """
   def build_grid(image) do
@@ -118,6 +124,35 @@ defmodule Identicon do
     end
 
     %Identicon.Image{image | grid: grid}
+  end
+
+  def build_pixel_map(image) do
+    %Identicon.Image{grid: grid} = image
+    pixel_map = Enum.map grid, fn({_, index}) ->
+      hor = rem(index, 5) * 50
+      ver = div(index, 5) * 50
+      top_left = {hor, ver}
+      bot_right = {hor+50, ver+50}
+      {top_left, bot_right}
+    end
+
+    %Identicon.Image{image | pixel_map: pixel_map}
+  end
+
+  def draw_image(image) do
+    %Identicon.Image{color: color, pixel_map: pixel_map} = image
+    canvas = :egd.create(250, 250)
+    fill = :egd.color(color)
+
+    Enum.each pixel_map, fn({start, stop}) ->
+      :egd.filledRectangle(canvas, start, stop, fill)
+    end
+
+    :egd.render(canvas)
+  end
+
+  def save_image(image, filename) do
+    File.write("#{filename}.png", image)
   end
 
 end
